@@ -6,7 +6,7 @@ Ultra-lightweight native Windows 11 system tray utility for passively receiving 
 
 - **Minimal footprint:** uses only the official `windows` crate (WinRT + Win32 API) with no third-party runtimes or extra dependencies (~134 KB release binary, `< 1 MB` Private Working Set in idle, 0% CPU between checks).
 - **Burst passive scanning:** runs `BluetoothLEAdvertisementWatcher` in `Passive` mode on a timer, immediately stops the watcher upon receiving the first valid unencrypted temperature packet (or on timeout: 50 s, up to 120 s on initial startup acquisition), and trims the process working set (`SetProcessWorkingSetSize`).
-- **DPI- and theme-aware tray icon:** renders a crisp 32-bit ARGB pixel-font icon (`7×16` bold / `5×12` compact) sized to `SM_CXSMICON`/`SM_CYSMICON` and adapted to the Windows 11 taskbar theme (`SystemUsesLightTheme`). Displays `--` before the first reading or after 2 consecutive missed checks (`> interval * 2 + 1` min).
+- **DPI- and theme-aware tray icon:** renders a crisp 32-bit ARGB pixel-font icon (`7×16` bold / `5×12` compact) sized to `SM_CXSMICON`/`SM_CYSMICON` and adapted to the Windows 11 taskbar theme (`SystemUsesLightTheme`). Displays `--` before the first reading, and retains the last received temperature if subsequent checks miss a packet (marking the tooltip as `stale` after 2 consecutive missed intervals).
 - **Single-instance:** prevents duplicate instances using a named Win32 mutex.
 
 ## Build

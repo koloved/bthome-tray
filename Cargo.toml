@@ -1,6 +1,6 @@
 [package]
 name = "bthome-tray"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 description = "Ultra-lightweight Windows 11 system tray utility for BTHome v2 BLE temperature sensors"
 

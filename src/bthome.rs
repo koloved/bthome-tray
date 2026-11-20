@@ -194,14 +194,14 @@ pub fn format_mac(mac: u64, buf: &mut [u8; 17]) -> &str {
     unsafe { core::str::from_utf8_unchecked(buf) }
 }
 
-/// Formats the short text drawn on the tray icon (`"24"`, `"-5"`, `"--"`).
-pub fn format_icon_text(temp_centi: Option<i16>, stale: bool, buf: &mut [u8; 8]) -> &str {
+/// Formats the short text drawn on the tray icon (`"24"`, `"-5"`, or `"--"` before first reading).
+pub fn format_icon_text(temp_centi: Option<i16>, buf: &mut [u8; 8]) -> &str {
     let len = match temp_centi {
-        Some(tc) if !stale => {
+        Some(tc) => {
             let deg = round_temp_deg(tc);
             write_i32_ascii(deg as i32, buf)
         }
-        _ => {
+        None => {
             buf[0] = b'-';
             buf[1] = b'-';
             2
@@ -225,21 +225,6 @@ pub fn format_tooltip_utf16(
         w.push_str("Scanning BTHome v2...");
         return;
     };
-
-    if stale {
-        w.push_str("Signal lost (>");
-        w.push_u32(interval_minutes * 2 + 1);
-        w.push_str("m)");
-        if let Some(tc) = r.temp_centi {
-            w.push_str(" | Last: ");
-            w.push_temp_tenths(tc);
-            w.push_str(" \u{00B0}C");
-        }
-        w.push_str(" (");
-        w.push_u32(interval_minutes);
-        w.push_str("m)");
-        return;
-    }
 
     if let Some(tc) = r.temp_centi {
         w.push_temp_tenths(tc);
@@ -274,7 +259,11 @@ pub fn format_tooltip_utf16(
 
     w.push_str(" (");
     w.push_u32(interval_minutes);
-    w.push_str("m)");
+    if stale {
+        w.push_str("m, stale)");
+    } else {
+        w.push_str("m)");
+    }
 }
 
 struct Utf16Buf<'a> {
@@ -413,7 +402,7 @@ mod tests {
         assert_eq!(parsed.temp_centi, Some(-540));
 
         let mut icon_buf = [0u8; 8];
-        assert_eq!(format_icon_text(parsed.temp_centi, false, &mut icon_buf), "-5");
+        assert_eq!(format_icon_text(parsed.temp_centi, &mut icon_buf), "-5");
     }
 
     #[test]
@@ -474,10 +463,9 @@ mod tests {
         assert_eq!(round_temp_deg(-450), -5);
 
         let mut icon_buf = [0u8; 8];
-        assert_eq!(format_icon_text(Some(-49), false, &mut icon_buf), "0");
-        assert_eq!(format_icon_text(Some(-50), false, &mut icon_buf), "-1");
-        assert_eq!(format_icon_text(Some(2350), true, &mut icon_buf), "--");
-        assert_eq!(format_icon_text(None, false, &mut icon_buf), "--");
+        assert_eq!(format_icon_text(Some(-49), &mut icon_buf), "0");
+        assert_eq!(format_icon_text(Some(-50), &mut icon_buf), "-1");
+        assert_eq!(format_icon_text(None, &mut icon_buf), "--");
 
         let reading = BthomeReading {
             battery: Some(92),
@@ -490,6 +478,11 @@ mod tests {
         let tip_len = tip.iter().position(|&c| c == 0).unwrap();
         let tip_str = String::from_utf16(&tip[..tip_len]).unwrap();
         assert_eq!(tip_str, "-0.5 \u{00B0}C | 48% | Bat: 92% (5m)");
+
+        format_tooltip_utf16(Some(&reading), true, 5, &mut tip);
+        let stale_len = tip.iter().position(|&c| c == 0).unwrap();
+        let stale_str = String::from_utf16(&tip[..stale_len]).unwrap();
+        assert_eq!(stale_str, "-0.5 \u{00B0}C | 48% | Bat: 92% (5m, stale)");
     }
 
     #[test]

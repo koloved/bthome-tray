@@ -180,7 +180,7 @@ fn update_tray_icon(hwnd: HWND, state: &mut AppState, force_add: bool) {
     let stale = state.is_stale();
     let temp_centi = state.last_reading.as_ref().and_then(|r| r.temp_centi);
     let mut text_buf = [0u8; 8];
-    let text = format_icon_text(temp_centi, stale, &mut text_buf);
+    let text = format_icon_text(temp_centi, &mut text_buf);
 
     let light_theme = registry::is_taskbar_light_theme();
     let icon_size = icon::small_icon_size();
